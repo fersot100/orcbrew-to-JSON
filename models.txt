@@ -1,0 +1,27 @@
+orcpub.dnd.e5/subclasses {
+    key [ENUM_SUBCLASS],
+    level-modifiers [ARRAY(__LEVEL_MODIFIER__OBJECT)],
+    name [STRING],
+    class [ENUM_CLASS],
+    __class__-spells [OBJECT(__INDEXED_OBJECT__(__INDEXED_OBJECT__))],
+    traits [ARRAY(OBJECT(__TRAIT_OBJECT__)))]
+}
+
+__class__-spells {
+    i [NUMBERED_LIST]
+}
+
+__TRAIT_OBJECT__ {
+    description [STRING],
+    name [STRING],
+    level [NUMBER]
+}
+
+__LEVEL_MODIFIER__OBJECT {
+    type [ENUM_ARMOR_PROF],
+    value []
+}
+
+
+
+
