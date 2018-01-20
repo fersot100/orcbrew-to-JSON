@@ -7,7 +7,7 @@ if (process.argv.length !== 3) {
      process.exit(1);
 }
 const fs = require('fs'), filename = process.argv[2];
-let properties = objects = strings = arrays = 0;
+let objects = strings = arrays = 0;
 
 //This is the main function that parses the file
 function parseOrcbrew(text) {
@@ -21,15 +21,11 @@ function parseOrcbrew(text) {
         parseByType(content);
     } while (content !== "");
 
-    console.log(`Found ${properties} properties, ${objects} objects, ${arrays} arrays, and ${strings} strings.\n`);
+    console.log(`Found ${objects} objects, ${arrays} arrays, and ${strings} strings.\n`);
 }
 
 function parseByType(string){
     switch (string[0]){
-        case ':':
-            properties++;
-            return parseProperty(string);
-            break;
         case '{':
             objects++;
             return parseObject(string);
@@ -45,16 +41,16 @@ function parseByType(string){
     }
 }
 
-function parseProperty(string){
-
-}
-
 function parseObject(string){
-
+    return {};
 }
 
 function parseString(string){
+    return "";
+}
 
+function parseArray(string){
+    return [];
 }
 
 function findNextStructure(string) {
