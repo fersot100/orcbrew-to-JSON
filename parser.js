@@ -50,17 +50,42 @@ function parseString(string){
 }
 
 function parseArray(string){
-    return [];
+    const array = [];
+    const close = findStructureClose(string);
+    string = string.slice(0, close);
+    let next = string.skipSpace(string.slice(1));
+    array.append(parseByType(string));
+
+
+
+    return array;
 }
+
+function findStructureClose(string){
+    //string must start with the opening symbol of the collection
+    let pairs = 0, open, close;
+    if(string.charAt(0) === '{') [open, close] = ['{', '}'];
+    else if(string.charAt(0) === '[') [open, close] = ['[', ']'];
+    
+    //Counting pairs accounts for nested collections
+    for(let i = 0; i < string.length; i++){
+        switch (string.charAt(i)){
+            case open:
+                pairs++;
+                break;
+            case close:
+                if(pairs === 0) return i + 1;
+                else pairs--;
+                break;
+        }
+    }
+    throw error(`No closing ${close} for structure ${string.slice(0, 10)}`);
+}
+
 
 function findNextStructure(string) {
     const nextStructure = string.search(/["{[:]/g);
-    if(nextStructure == -1 ) return "";
-    return string.slice(nextStructure);
-}
-
-function returnObject(){
-
+    return nextStructure;
 }
 
 function skipSpace(string){
@@ -69,7 +94,7 @@ function skipSpace(string){
     //If none exists, the file has been parsed and we can return an empty string
     if(next == -1) return "";
     //Return the string with the whitespace sliced off
-    return string.slice(next); 
+    return next; 
 }
 
 fs.readFile(filename, 'utf8', (err, data) => {
