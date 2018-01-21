@@ -17,7 +17,7 @@ let objects = strings = arrays = 0;
 const _regexlib = {
     property_or_number: /(:[\w-./]+)|(\d+\s)/,
     property: /(:[\w-]+)/,
-    number: /(\d+\s)/,
+    number: /\d+\s/,
     property_or_number_or_object_close: /(:[\w-]+)|(\d+\s)|}/,
     property_or_object_close: /(:[\w-]+)|}/,
     number_or_object_close: /(\d+\s)|}/,
@@ -33,7 +33,10 @@ const _regexlib = {
 //This is the main function that parses the file
 function parseOrcbrew(text) {
     //While there is still content, we continue to look for structures and parse them
-    console.log(JSON.stringify(parseByType(text.trim())));
+    const output = parseByType(text.trim());
+
+    console.log(output[0]);
+
     console.log(`Found ${objects} objects, 
     ${arrays} arrays, and ${strings} strings.\n`);
 }
@@ -60,84 +63,87 @@ function parseByType(string){
 //----------------------------------------------
 //                  PARSERS
 //----------------------------------------------
-
-//Returns an actual javscript string value
-function parseString(string){
-    const end_of_value = string.slice(1).search(/"/);
-    return string.slice(1, end_of_value + 1);
-}
-
-//Returns an actual javascript array with all elements parsed
-function parseArray(string){
-    const array = [];
-    const close = findCollectionClose(string);
-    string = string.slice(0, close);
-    while(string > 2){
-        console.log(string.length);
-        array.append(parseByType(string));
-        string = findNextObjectValue(string);
-    }
-    return array;
-}
-
-//Returns a string with the property name
-function parseProperty(string){
-    return string.match(_regexlib.property).slice(2);
-}
-
 //Returns an actual object with all properties parsed
 function parseObject(string){
+    //Deep copy string
+    let objectString = string.slice(0);
     //Enum for different object types
     var TYPES = {
         INDEX: 0,
         PROPERTY: 1 
     }
-    //Slice the text after the object end
-    let object = {}, key, type, keyStart;
-    //Clip the text after the closure
-    let objectString = string.slice(0, findCollectionClose(string) + 1);
 
+    let object = {}, key, type, keyStart;
+    
     objectLoop:
         while(objectString.length > 0) {
             //Parse key 
             key = objectString.match(_regexlib.property_or_number)[0];
             keyStart = objectString.search(_regexlib.property_or_number);
-           
 
-            //If the key is not an index, slice the ":" off the beginning
+            //If the key is a property type, slice the ":" off the beginning
             if (isNaN(parseInt(key, 10))) {
-                console.log('Trigger NaN')
                 type = TYPES.PROPERTY;
                 key = key.slice(1);
             } else type = TYPES.INDEX;
 
-            //Cut the key out of the string            
+            //Cut the key out of the string
             objectString = objectString.slice(keyStart + key.length);
             
             //Start the next object value
             [objectString, end_of_value] = findNextObjectValue(objectString);
 
             //Assign the key a value
-            object[key] = parseByType(objectString);
-            objectString = objectString.slice(end_of_value);
+            [object[key], objectString] = parseByType(objectString);
 
+            console.log(`Key: ${key}  Value: ${object[key]}`)
             //Find the next key or index if there is one, otherwise break the loop.
             switch (type){
                 case TYPES.INDEX:
-                    if(objectString.match(_regexlib.number_or_object_close)[0] === '}')
+                    if(objectString.match(_regexlib.number_or_object_close)[0] === '}'){
+                        objectString.slice(objectString.search(_regexlib.number_or_object_close));
                         break objectLoop;
-                    objectstring = objectString.slice(string.search(_regexlib.number));
+                    }
+                    objectstring = objectString.slice(objectString.search(_regexlib.number));
                     break;
                 case TYPES.PROPERTY:
-                    if(objectString.match(_regexlib.property_or_object_close)[0] === '}')
+                    if(objectString.match(_regexlib.property_or_object_close)[0] === '}'){
+                        objectString.slice(objectString.search(_regexlib.property_or_object_close));
                         break objectLoop;
-                    objectstring = objectString.slice(string.search(_regexlib.property));
+                    }
+                    objectstring = objectString.slice(objectString.search(_regexlib.property));
                     break;
             }
         }
     
-    return object;
+    return [object, objectString];
 }
+//Returns a javascript string 
+function parseString(string){
+    const end_of_value = string.slice(1).search(/"/);
+    return [string.slice(1, end_of_value + 1), string.slice(0, end_of_value + 1)];
+}
+
+//Returns a javascript array with all elements parsed
+function parseArray(string){
+    const array = [];
+    const close = findCollectionClose(string);
+    while(str > 2){
+        console.log(str.length);
+        [val, str] = parseByType(str);
+        array.append(val);
+        str = findNextObjectValue(str);
+    }
+    return [array, string.slice(close)];
+}
+
+//Returns a string with the property name and the new string after the parse
+function parseProperty(string){
+    const property = string.match(_regexlib.property).slice(2)
+    return [property,string.slice(property.length + 2)];
+}
+
+
 
 //----------------------------------------------
 //                  FINDERS
