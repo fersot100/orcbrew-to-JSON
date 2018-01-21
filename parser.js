@@ -13,8 +13,12 @@ let objects = strings = arrays = 0;
 const _regexlib = {
     property_or_number: /(:[\w-./]+)|(\d+\s)/,
     property: /(:[\w-]+)/,
+    number: /(\d+\s)/,
+    property_or_number_or_object_close: /(:[\w-]+)|(\d+\s)|}/,
     property_or_object_close: /(:[\w-]+)|}/,
-    space_before_item: /\s[":{[]/
+    number_or_object_close: /(\d+\s)|}/,
+    space_before_item: /\s[":{[]/,
+    next_item: /[":{[]/
 }
 
 //This is the main function that parses the file
@@ -46,22 +50,51 @@ function parseByType(string){
 
 //Returns an actual object with all properties parsed
 function parseObject(string){
-    console.log("Parsing Object");
-    //Slice the text after the object end
-    let object = {}, key = "";
-    let objectString = string.slice(0, findCollectionClose(string) + 1);
-    if (objectString.length > 2) {
-        while(objectString.length > key.length + 4) {
-            key = objectString.match(_regexlib.property_or_number)[0].slice(1);
-            objectString = findNextObjectValue(objectString);
-            object[key] = parseByType(objectString);
-            if(objectString.match(_regexlib.property_or_object_close)[0] === '}')
-                break;
-            objectstring = objectString.slice(string.search(_regexlib.property));
-        }
+    //Enum for different object types
+    var TYPES = {
+        INDEX: 0,
+        PROPERTY: 1 
     }
+    //Slice the text after the object end
+    let object = {}, key, type;
+    //Clip the text after the closure
+    let objectString = string.slice(0, findCollectionClose(string) + 1);
+    
+    console.log("Parsing Object");
+
+    objectLoop:
+        while(objectString) {
+            key = objectString.match(_regexlib.property_or_number)[0];
+
+            //If the key is not an index, slice the : off the beginning
+            if (parseInt(key, 10) === NaN) {
+                type = TYPES.PROPERTY;
+                key = key.slice(1);
+            } else type = TYPES.INDEX;
+
+            //Assign the key a value
+            object[key] = parseByType(findNextObjectValue(objectString));
+
+            //Treat the object differently depending on the type
+            switch (type){
+                case TYPES.INDEX:
+                    if(objectString.match(_regexlib.number_or_object_close)[0] === '}')
+                        break objectLoop;
+                    objectstring = objectString.slice(string.search(_regexlib.number));
+                    break;
+                case TYPES.PROPERTY:
+                    if(objectString.match(_regexlib.property_or_object_close)[0] === '}')
+                        break objectLoop;
+                    objectstring = objectString.slice(string.search(_regexlib.property));
+                    break;
+            }
+
+            objectstring = objectString.slice(string.search(_regexlib.property_or_number));
+        }
     return object;
 }
+
+//
 
 function findNextObjectValue(string) {
     return string.slice(string.search(_regexlib.space_before_item) + 1);
@@ -113,7 +146,7 @@ function findCollectionClose(string){
             string received with first character ${string.charAt(0)}`);
     }
     
-    //Counting pairs accounts for nested collections
+    //Counting pairs accounts for nested collections, avoid first symbol
     for(let i = 1; i < string.length; i++){
         switch (string.charAt(i)){
             case open:
@@ -130,10 +163,7 @@ function findCollectionClose(string){
 }
 
 
-function findNextStructure(string) {
-    const nextStructure = string.search(/["{[:]/g);
-    return nextStructure;
-}
+
 
 function skipSpace(string){
     //Finds the next instance of a non-whitespace character
