@@ -93,8 +93,8 @@ function parseObject(string){
         PROPERTY: 1 
     }
     //Slice the text after the object end
-    let object, key, type, keyStart;
-    //Clip the text after the closing symbol
+    let object = {}, key, type, keyStart;
+    //Clip the text after the closure
     let objectString = string.slice(0, findCollectionClose(string) + 1);
 
     objectLoop:
@@ -103,16 +103,13 @@ function parseObject(string){
             key = objectString.match(_regexlib.property_or_number)[0];
             keyStart = objectString.search(_regexlib.property_or_number);
            
+
             //If the key is not an index, slice the ":" off the beginning
             if (isNaN(parseInt(key, 10))) {
+                console.log('Trigger NaN')
                 type = TYPES.PROPERTY;
                 key = key.slice(1);
-                object = {};
-            } else {
-                key = parseInt(key, 10)
-                type = TYPES.INDEX;
-                object = [];
-            }
+            } else type = TYPES.INDEX;
 
             //Cut the key out of the string            
             objectString = objectString.slice(keyStart + key.length);
@@ -120,24 +117,18 @@ function parseObject(string){
             //Start the next object value
             [objectString, end_of_value] = findNextObjectValue(objectString);
 
-            //Jump to the end of the value
+            //Assign the key a value
+            object[key] = parseByType(objectString);
             objectString = objectString.slice(end_of_value);
 
             //Find the next key or index if there is one, otherwise break the loop.
             switch (type){
-                
                 case TYPES.INDEX:
-                    //Append value to object array
-                    console.log(typeof object)
-                    object.push(parseByType(objectString));
                     if(objectString.match(_regexlib.number_or_object_close)[0] === '}')
                         break objectLoop;
                     objectstring = objectString.slice(string.search(_regexlib.number));
                     break;
-
                 case TYPES.PROPERTY:
-                    //Add value to object property
-                    object[key] = parseByType(objectString);
                     if(objectString.match(_regexlib.property_or_object_close)[0] === '}')
                         break objectLoop;
                     objectstring = objectString.slice(string.search(_regexlib.property));
